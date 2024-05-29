@@ -17,19 +17,25 @@ def connect_to_database():
         charset = "utf8",
         autocommit = True
     )
+    
+def get_user_id(curs, name):
+    curs.execute(f"select id from auth_user where username='{name}'")
+    user_id = curs.fetchone()['id']
+    print(user_id)
+    return user_id
 
-def get_data(conn):
-    cursor = conn.cursor(cursors.DictCursor)
-    cursor.execute("select user_id, medicine, container, dosing_time, finished, `repeat` from notes_note where user_id=1")
-    rows = cursor.fetchall()
-    return rows, cursor
+def get_data(curs, user_id):
+    curs.execute(f"select user_id, medicine, container, dosing_time, finished, `repeat` from notes_note where user_id={user_id}")
+    rows = curs.fetchall()
+    print(rows)
+    return rows
     
 
-def check_and_send_signal(conn, curs ,rows):
+def check_and_send_signal(curs ,rows):
     print("신호 확인 및 전송 시작")
     while True:     
         if keyboard.is_pressed('q'):
-            rows = get_data(conn)
+            rows = get_data(curs, user_id)
             print(rows)
             print('Get new data')
             
@@ -55,10 +61,16 @@ def check_and_send_signal(conn, curs ,rows):
 if __name__ == "__main__":
     # MySQL 데이터베이스에 연결
     conn = connect_to_database()
-    rows, curs = get_data(conn)
+    name = "홍석민"
+    
+    cursor = conn.cursor(cursors.DictCursor)
+    user_id = get_user_id(cursor, name)
+    
+    rows = get_data(cursor, user_id)
+    quit()
     # 시리얼 포트와 통신 속도 설정
     ser = serial.Serial('/dev/ttyACM0', 9600)  # '/dev/ttyUSB0'는 아두이노가 연결된 포트
     time.sleep(2)  # 시리얼 통신 안정화 시간
-    check_and_send_signal(conn, curs, rows)
+    check_and_send_signal(cursor, rows)
     # 데이터베이스 연결 종료
     conn.close()
